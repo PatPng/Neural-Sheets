@@ -16,66 +16,51 @@ print(img.shape)
 new_img = cv2.merge((b, g, r))
 not_a = cv2.bitwise_not(a)
 not_a = cv2.cvtColor(not_a, cv2.COLOR_GRAY2BGR)
-# plt.imshow(not_a)
-# plt.show()
 new_img = cv2.bitwise_and(new_img, new_img, mask=a)
 new_img = cv2.add(new_img, not_a)
 
 cv2.imwrite("image_wb.jpg", new_img)
 
+img = cv2.imread('image_wb.jpg',0)
+rows,cols = img.shape
 
-def noise(noise_typ, slika):
+warps=[]                    # lista warpova
+for k in range (0, 10):
+    M = np.float32([[1,0,(k*2)-5],[0,1,0]])
+    dst = cv2.warpAffine(img,M,(cols,rows))     # offsetiranje
+    warps.append(dst)
 
-    if noise_typ == "gauss":                                # gauss
-        row, col, ch = slika.shape
-        mean = 0
-        var = 0.1
-        sigma = var ** 0.8
-        gauss = np.random.normal(mean, sigma, (row, col, ch))
-        gauss = gauss.reshape(row, col, ch)
-        noisy = slika + gauss
-        cv2.imwrite("image_gauss.jpg", noisy)
-        return noisy
+warp_speck = []
+j=0
+for i in range(len(warps)):
+    slika = warps[i]
+    name = "warp" + str(j) + ".jpg"
+    name2 = "warp_speck" + str(j) + ".jpg"
+    name3 = "s&p_speck" + str(j) + ".jpg"
+    cv2.imwrite("resources/" + name, warps[i])
 
-    elif noise_typ == "s&p":                             # salt & pepper
-        # row, col, ch = slika.shape
-        s_vs_p = 0.5
-        amount = 0.004*5
-        out = np.copy(slika)
+    row, col = slika.shape
+    gauss = np.random.randn(row, col)
+    gauss = gauss.reshape(row, col)
+    noisy = slika + slika * gauss
+    cv2.imwrite("resources/" + name2, noisy)
 
-        # Salt mode
-        num_salt = np.ceil(amount * slika.size * s_vs_p)
-        coord = [np.random.randint(0, i - 1, int(num_salt))
-                 for i in slika.shape]
-        out[coord] = 1
+    s_vs_p = 0.5
+    amount = 0.004 * 5
+    out = np.copy(slika)
 
-        # Pepper mode
-        num_pepper = np.ceil(amount * slika.size * (1. - s_vs_p))
-        coord = [np.random.randint(0, i - 1, int(num_pepper))
-                 for i in slika.shape]
-        out[coord] = 0
-        noisy = out
-        cv2.imwrite("image_s&p.jpg", noisy)
-        return noisy
+    # Salt mode
+    num_salt = np.ceil(amount * slika.size * s_vs_p)
+    coord = [np.random.randint(0, i - 1, int(num_salt))
+             for i in slika.shape]
+    out[coord] = 1
 
-    elif noise_typ == "poisson":                        # pisson
-        val = len(np.unique(slika))
-        val = 2 ** np.ceil(np.log2(val))
-        noisy = np.random.poisson(slika * val) / float(val)
-        cv2.imwrite("image_poisson.jpg", noisy)
-        return noisy
+    # Pepper mode
+    num_pepper = np.ceil(amount * slika.size * (1. - s_vs_p))
+    coord = [np.random.randint(0, i - 1, int(num_pepper))
+             for i in slika.shape]
+    out[coord] = 0
+    noisy2 = out
+    cv2.imwrite("resources/" + name3, noisy2)
 
-    elif noise_typ == "speckle":                        # speckle
-        row, col, ch = slika.shape
-        gauss = np.random.randn(row, col, ch)
-        gauss = gauss.reshape(row, col, ch)
-        noisy = slika + slika * gauss
-        cv2.imwrite("image_speckle.jpg", noisy)
-        return noisy
-
-
-image = cv2.imread("image_wb.jpg")
-noise("gauss", image)
-noise("poisson", image)
-noise("speckle", image)
-noise("s&p", image)
+    j = j + 1
